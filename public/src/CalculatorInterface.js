@@ -259,19 +259,19 @@ function checkIfNumberIsDecimal() {
 
 function operationsBySign() {
     if (currentSign === 'Divide') {
-        return calculator.divide(firstNumber, secondNumber);
+        return [calculator.divide(firstNumber, secondNumber)];
     }
 
     if (currentSign === 'Multiply') {
-        return calculator.multiply(firstNumber, secondNumber);
+        return [calculator.multiply(firstNumber, secondNumber)];
     }
 
     if (currentSign === 'Minus') {
-        return calculator.minus(firstNumber, secondNumber);
+        return [calculator.minus(firstNumber, secondNumber)];
     }
 
     if (currentSign === 'Plus') {
-        return calculator.plus(firstNumber, secondNumber);
+        return [calculator.plus(firstNumber, secondNumber)];
     }
 }
 
