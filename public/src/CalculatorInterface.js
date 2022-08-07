@@ -1,13 +1,15 @@
 import Calculator from './Calculator';
+import { CalculatorData, CurrentCalculatorDisplay } from './Observer';
 
-const numbers = [[], []];
-let currentArray = 0;
-let currentSign;
 let isResult;
+let currentSign;
 let firstNumber;
 let secondNumber;
 
 let calculator = new Calculator();
+
+const calculatorData = new CalculatorData();
+const currentCalculatorDisplay = new CurrentCalculatorDisplay(calculatorData);
 
 export function buildInterface(placeholder) {
 
@@ -99,135 +101,99 @@ export function buildInterface(placeholder) {
 
     function pushNumbers(number) {
         // Checks if there is no decimal separator after zero
-        if (numbers[currentArray].length === 1 && numbers[currentArray][0] === 0) {
+        if (calculatorData.numbers[calculatorData.currentArray].length === 1 && calculatorData.numbers[calculatorData.currentArray][0] === 0) {
             return;
         }
 
         // Resets if a person clicks on a number right after getting the result
         if (isResult && currentSecondArrayIsEmpty()) {
-            currentArray = 0;
-            numbers[0] = [number];
-            display();
+            calculatorData.setCalculatorData([[number], []], 0);
+            inputScreen.value = currentCalculatorDisplay.output;
             isResult = false;
             return;
         }
 
         // Adds number into the current array
-        numbers[currentArray].push(number);
+        calculatorData.pushNumberCalculatorData(number);
 
         // Resets operation buttons colors after the first number of the second array is added
         if (currentSecondArrayHasNumber()) {
             buttonsColorReset();
         }
 
-        display();
-    }
-
-    function display() {
-        // Checks if the current array is the second, but it doesn't have any numbers
-        if (currentSecondArrayIsEmpty()) {
-            inputScreen.value = numbers[0].join('');
-        } else {
-            inputScreen.value = numbers[currentArray].join('');
-        }
+        inputScreen.value = currentCalculatorDisplay.output;
     }
 
     function togglePositiveNegative() {
-        if (currentSecondArrayIsEmpty()) {
-            if (numbers[0][0] !== '-') {
-                numbers[0].unshift('-');
-                display();
-            } else if (numbers[0][0] === '-') {
-                numbers[0].shift();
-                display();
-            }
-        } else if (numbers[currentArray][0] !== '-' && numbers[currentArray].length > 0) {
-            numbers[currentArray].unshift('-');
-            display();
-        } else if (numbers[currentArray][0] === '-' && numbers[currentArray].length > 0) {
-            numbers[currentArray].shift();
-            display();
-        }
+        calculatorData.togglePositiveNegativeCalculatorData();
+        inputScreen.value = currentCalculatorDisplay.output;
     }
 
     function handlerResetButton() {
-        numbers[0] = [];
-        numbers[1] = [];
-        currentArray = 0;
+        calculatorData.setCalculatorData([[], []], 0);
         currentSign = '';
         buttonsColorReset();
-        inputScreen.value = '';
+        inputScreen.value = currentCalculatorDisplay.output;
     }
 
     function handlerEraseButton() {
-        if (currentSecondArrayIsEmpty()) {
-            numbers[0].pop();
-            currentArray = 0;
-        } else {
-            numbers[currentArray].pop();
-        }
-        display();
+        calculatorData.handlerEraseButtonCalculatorData();
+        inputScreen.value = currentCalculatorDisplay.output;
     }
 
     function performOperation(buttonName, sign) {
-        if (currentArray === 0 && numbers[0].length > 0) {
-            currentArray = 1;
+        const dataSettings = function () {
             currentSign = sign;
             buttonsColorReset();
             buttonName.style.backgroundColor = 'orange';
         }
 
-        if (currentArray !== 0 && numbers[1].length === 0) {
-            currentSign = sign;
+        // If current array is one and greater than zero
+        if (calculatorData.currentArray === 0 && calculatorData.numbers[0].length > 0) {
+            calculatorData.currentArray = 1;
+            dataSettings();
+        }
+
+        if (currentSecondArrayIsEmpty()) {
             isResult = false;
-            buttonsColorReset();
-            buttonName.style.backgroundColor = 'orange';
+            dataSettings();
         }
 
         if (bothArraysContainNumbers()) {
             convertArraysIntoNumbers();
-            numbers[0] = operationsBySign().toString().split('');
-            numbers[1] = [];
-            currentArray = 1;
-            currentSign = sign;
-            buttonsColorReset();
-            buttonName.style.backgroundColor = 'orange';
-            display();
+            calculatorData.setCalculatorData([operationsBySign().toString().split(''), []], 1);
+            dataSettings();
+            inputScreen.value = currentCalculatorDisplay.output;
         }
     }
 
     function handlerEqualsButton() {
         if (bothArraysContainNumbers()) {
             convertArraysIntoNumbers();
-            numbers[0] = operationsBySign().toString().split('');
-            numbers[1] = [];
-            currentArray = 1;
+            calculatorData.setCalculatorData([operationsBySign().toString().split(''), []], 1);
             currentSign = '';
             buttonsColorReset();
             isResult = true;
-            display();
+            inputScreen.value = currentCalculatorDisplay.output;
         }
     }
 
     const handlerPercentButton = function () {
         convertArraysIntoNumbers();
         const dataSettings = function () {
-            numbers[1] = [];
-            currentArray = 1;
             currentSign = '';
             buttonsColorReset();
-            display();
+            inputScreen.value = currentCalculatorDisplay.output;
         }
 
-        if ((currentArray === 0 || numbers[1].length === 0) && numbers[0].length > 0) {
-            numbers[0] = [firstNumber * 0.01];
+        if ((calculatorData.currentArray === 0 || calculatorData.numbers[1].length === 0) && calculatorData.numbers[0].length > 0) {
+            calculatorData.setCalculatorData([[firstNumber * 0.01], []], 1);
             dataSettings();
-
         }
 
         if (currentSecondArrayHasNumber()) {
             secondNumber = secondNumber * 0.01;
-            numbers[0] = operationsBySign().toString().split('');
+            calculatorData.setCalculatorData([operationsBySign().toString().split(''), []], 1);
             dataSettings();
         }
     }
@@ -240,21 +206,14 @@ export function buildInterface(placeholder) {
     }
 
     function addDecimalSeparator() {
-        if (numbers[currentArray].length > 0 && !numbers[currentArray].includes('.') && !checkIfNumberIsDecimal()) {
-            numbers[currentArray].push('.');
-            display();
-        }
+        calculatorData.addDecimalSeparatorCalculatorData();
+        inputScreen.value = currentCalculatorDisplay.output;
     }
 }
 
 function convertArraysIntoNumbers() {
-    firstNumber = Number(numbers[0].join(''));
-    secondNumber = Number(numbers[1].join(''));
-}
-
-function checkIfNumberIsDecimal() {
-    let number = Number(numbers[currentArray].join(''));
-    return (number - Math.floor(number)) !== 0 ? true : false;
+    firstNumber = Number(calculatorData.numbers[0].join(''));
+    secondNumber = Number(calculatorData.numbers[1].join(''));
 }
 
 function operationsBySign() {
@@ -273,16 +232,17 @@ function operationsBySign() {
     if (currentSign === 'Plus') {
         return [calculator.plus(firstNumber, secondNumber)];
     }
+
 }
 
 function currentSecondArrayIsEmpty() {
-    return currentArray === 1 && numbers[1].length === 0;
+    return calculatorData.currentArray === 1 && calculatorData.numbers[1].length === 0;
 }
 
 function bothArraysContainNumbers() {
-    return numbers[0].length > 0 && numbers[1].length > 0;
+    return calculatorData.numbers[0].length > 0 && calculatorData.numbers[1].length > 0;
 }
 
 function currentSecondArrayHasNumber() {
-    return currentArray === 1 && numbers[1].length > 0;
+    return calculatorData.currentArray === 1 && calculatorData.numbers[1].length > 0;
 }
